@@ -1,13 +1,17 @@
 import cv2
 import sys
+from datetime import datetime
 
 #cascPath = sys.argv[1]
 cascPath = 'haarcascade_frontalface_default.xml'
 
 faceCascade = cv2.CascadeClassifier(cascPath)
 eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
-
+output = None
+fileName = None
 video_capture = cv2.VideoCapture(0)
+vid_cod = cv2.VideoWriter_fourcc(*'XVID')
+flag = "stop"
 img_counter = 0
 while True:
     # Capture frame-by-frame
@@ -31,12 +35,28 @@ while True:
         minSize=(30, 30),
         flags=cv2.CASCADE_SCALE_IMAGE
     )
-    
-    #print(gray)
-    if (len(faces) > 1) and (img_counter == 0):
-        img_name = "opencv_frame_{}.png".format(img_counter)
-        cv2.imwrite(img_name, frame)
-        img_counter = 1
+
+    if (len(faces) >= 1 and flag == "stop"):
+        timestamp = datetime.timestamp(datetime.now())
+        fileName = "cam_video_{}.avi".format(str(timestamp))
+        output = cv2.VideoWriter(fileName, vid_cod, 20.0, (640,480))
+        flag = "start"
+        print("Recording Starts at {}\n".format(datetime.now()))
+
+
+    if (len(faces) >= 1 and flag == "start"):
+        # img_name = "opencv_frame_{}.png".format(img_counter)
+        # cv2.imwrite(img_name, frame)
+        # img_counter = 1
+        cv2.imshow("My cam video", frame)
+        output.write(frame)
+        flag = "start"
+        
+    if(flag == "start" and len(faces) == 0):
+        print("Recording Stops at {}".format(datetime.now()))
+        print("Saved as : {}\n".format(fileName))
+        output.release()
+        flag = "stop"
 
     # Draw a rectangle around the faces
     for (x, y, w, h) in faces:
@@ -50,4 +70,5 @@ while True:
 
 # When everything is done, release the capture
 video_capture.release()
+output.release()
 cv2.destroyAllWindows()
