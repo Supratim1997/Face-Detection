@@ -1,5 +1,6 @@
 import cv2
 import sys
+import os
 from datetime import datetime
 
 #cascPath = sys.argv[1]
@@ -7,15 +8,31 @@ cascPath = 'haarcascade_frontalface_default.xml'
 
 faceCascade = cv2.CascadeClassifier(cascPath)
 eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
-output = None
-fileName = None
+
 video_capture = cv2.VideoCapture(0)
+
+(major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
+    
+# can not use the get(CV_CAP_PROP_FPS) method for webcam 
+# :
+if int(major_ver)  < 3 :
+    fps = video_capture.get(cv2.cv.CV_CAP_PROP_FPS)
+    print("Frames per second using video.get(cv2.cv.CV_CAP_PROP_FPS): {0}".format(fps))
+else :
+    fps = video_capture.get(cv2.CAP_PROP_FPS)
+    print("Frames per second using video.get(cv2.CAP_PROP_FPS) : {0}".format(fps))
+
+
+frame_count = 0 #int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
+
 vid_cod = cv2.VideoWriter_fourcc(*'XVID')
 flag = "stop"
 img_counter = 0
 while True:
     # Capture frame-by-frame
+    duration = frame_count/fps
     ret, frame = video_capture.read()
+    
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -48,15 +65,33 @@ while True:
         # img_name = "opencv_frame_{}.png".format(img_counter)
         # cv2.imwrite(img_name, frame)
         # img_counter = 1
-        cv2.imshow("My cam video", frame)
+        frame_count = frame_count + 1
         output.write(frame)
         flag = "start"
         
-    if(flag == "start" and len(faces) == 0):
+    if(flag == "start" and len(faces) == 0 and duration >= 6):
         print("Recording Stops at {}".format(datetime.now()))
+        print('--------------------------')
+
+        print(duration)
+        print(frame_count)
+
+        print('--------------------------')
         print("Saved as : {}\n".format(fileName))
         output.release()
         flag = "stop"
+        duration = 0
+        frame_count = 0
+
+    if(flag == "start" and len(faces) == 0 and duration < 6):
+        output.release()
+        if os.path.exists(fileName):
+            os.remove(fileName)
+        flag = "stop"
+        duration = 0
+        frame_count = 0
+        
+
 
     # Draw a rectangle around the faces
     for (x, y, w, h) in faces:
